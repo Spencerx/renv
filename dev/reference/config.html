@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">renv</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.1.5.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.1.7.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -122,6 +122,11 @@ Defaults to <code>"api.bitbucket.org/2.0"</code>.</p>
 Defaults to <code>"auto"</code>.</p>
 </div>
 <div class="section">
+<h3 id="renv-config-crandb-enabled">renv.config.crandb.enabled<a class="anchor" aria-label="anchor" href="#renv-config-crandb-enabled"></a></h3>
+<p>Use the <a href="https://github.com/r-hub/crandb" class="external-link">crandb</a> service when looking up packages from CRAN which are not available in the configured repositories? When enabled, renv will query the crandb API to find the latest version of a package compatible with the current version of R. This can be useful when an older version of R is being used, and the latest version of a package on CRAN requires a newer version of R. Disabled by default.
+Defaults to <code>FALSE</code>.</p>
+</div>
+<div class="section">
 <h3 id="renv-config-connect-timeout">renv.config.connect.timeout<a class="anchor" aria-label="anchor" href="#renv-config-connect-timeout"></a></h3>
 <p>The amount of time to spend (in seconds) when attempting to download a file. Only applicable when the <code>curl</code> downloader is used.
 Defaults to <code>20L</code>.</p>
@@ -208,6 +213,11 @@ Defaults to <code>TRUE</code>.</p>
 Defaults to <code>TRUE</code>.</p>
 </div>
 <div class="section">
+<h3 id="renv-config-install-jobs">renv.config.install.jobs<a class="anchor" aria-label="anchor" href="#renv-config-install-jobs"></a></h3>
+<p>The number of packages to install concurrently during <code><a href="install.html">install()</a></code> and <code><a href="restore.html">restore()</a></code>. Packages within the same dependency wave are installed in parallel using this many concurrent R CMD INSTALL processes. Set to <code>1L</code> for sequential installation.
+Defaults to <code>4L</code>.</p>
+</div>
+<div class="section">
 <h3 id="renv-config-install-verbose">renv.config.install.verbose<a class="anchor" aria-label="anchor" href="#renv-config-install-verbose"></a></h3>
 <p>Be verbose when installing R packages from sources? When <code>TRUE</code>, renv will stream any output generated during package build + installation to the console.
 Defaults to <code>FALSE</code>.</p>
@@ -245,6 +255,7 @@ Defaults to <code>"https://packagemanager.posit.co/cran/latest"</code>.</p>
 <div class="section">
 <h3 id="renv-config-repos-override">renv.config.repos.override<a class="anchor" aria-label="anchor" href="#renv-config-repos-override"></a></h3>
 <p>Override the R package repositories used during <code><a href="restore.html">restore()</a></code>? Primarily useful for deployment / continuous integration, where you might want to enforce the usage of some set of repositories over what is defined in <code>renv.lock</code> or otherwise set by the R session.
+This can be specified as a single repository URL (e.g., "https://cloud.r-project.org"), or as multiple named repositories separated by semicolons using the format NAME=URL (e.g., "CRAN=https://p3m.dev/cran/latest;R_UNIV=https://posit-dev.r-universe.dev").
 Defaults to <code>NULL</code>.</p>
 </div>
 <div class="section">

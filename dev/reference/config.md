@@ -95,6 +95,16 @@ to `"api.bitbucket.org/2.0"`.
 The method to use when attempting to copy directories. See **Copy
 Methods** for more information. Defaults to `"auto"`.
 
+### renv.config.crandb.enabled
+
+Use the [crandb](https://github.com/r-hub/crandb) service when looking
+up packages from CRAN which are not available in the configured
+repositories? When enabled, renv will query the crandb API to find the
+latest version of a package compatible with the current version of R.
+This can be useful when an older version of R is being used, and the
+latest version of a package on CRAN requires a newer version of R.
+Disabled by default. Defaults to `FALSE`.
+
 ### renv.config.connect.timeout
 
 The amount of time to spend (in seconds) when attempting to download a
@@ -236,6 +246,16 @@ if all packages were successfully downloaded and installed. This can be
 useful if you'd like to avoid mutating your project library if
 installation of one or more packages fails. Defaults to `TRUE`.
 
+### renv.config.install.jobs
+
+The number of packages to install concurrently during
+[`install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+and
+[`restore()`](https://rstudio.github.io/renv/dev/reference/restore.md).
+Packages within the same dependency wave are installed in parallel using
+this many concurrent R CMD INSTALL processes. Set to `1L` for sequential
+installation. Defaults to `4L`.
+
 ### renv.config.install.verbose
 
 Be verbose when installing R packages from sources? When `TRUE`, renv
@@ -298,8 +318,12 @@ Override the R package repositories used during
 [`restore()`](https://rstudio.github.io/renv/dev/reference/restore.md)?
 Primarily useful for deployment / continuous integration, where you
 might want to enforce the usage of some set of repositories over what is
-defined in `renv.lock` or otherwise set by the R session. Defaults to
-`NULL`.
+defined in `renv.lock` or otherwise set by the R session. This can be
+specified as a single repository URL (e.g.,
+"https://cloud.r-project.org"), or as multiple named repositories
+separated by semicolons using the format NAME=URL (e.g.,
+"CRAN=https://p3m.dev/cran/latest;R_UNIV=https://posit-dev.r-universe.dev").
+Defaults to `NULL`.
 
 ### renv.config.rspm.enabled
 
