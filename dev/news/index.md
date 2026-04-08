@@ -15,6 +15,20 @@
   version, e.g. when a dependency could not be found in any configured
   repository. ([\#2251](https://github.com/rstudio/renv/issues/2251))
 
+- Fixed an issue where `renv_record_source()` returned `"unknown"` for
+  lockfile records that had a `Repository` field but no `Source` field.
+
+- Fixed an issue where
+  [`renv::checkout()`](https://rstudio.github.io/renv/dev/reference/checkout.md)
+  could produce a broken `activate.R` script
+  (e.g. `object '..md5..' not found` on session restart) when upgrading
+  `renv` itself during checkout.
+  ([\#2257](https://github.com/rstudio/renv/issues/2257))
+
+- Fixed an issue where `renv::restore(packages = ...)` did not install
+  transitive dependencies of the requested packages.
+  ([\#2259](https://github.com/rstudio/renv/issues/2259))
+
 ## renv 1.2.0
 
 CRAN release: 2026-03-25
