@@ -32,6 +32,16 @@ publicly available, or you have been unable to orchestrate the
 pre-requisites for installing some packages from source on your
 machine).
 
+### `lockfile.sanitize`
+
+Should renv sanitize repository URLs when writing the lockfile? When
+`TRUE`, embedded credentials are stripped from URLs (e.g.
+`https://user:token@host/path` becomes `https://host/path`) to prevent
+accidental credential leakage. Set this to `FALSE` if your repository
+URLs contain credentials required for
+[restore](https://rstudio.github.io/renv/dev/reference/restore.md) to
+function correctly.
+
 ### `ignored.packages`
 
 A vector of packages, which should be ignored when attempting to
@@ -151,6 +161,7 @@ appropriate startup profile, e.g. `~/.Rprofile` or similar.
 ## Examples
 
 ``` r
+
 if (FALSE) { # \dontrun{
 
 # view currently-ignored packaged

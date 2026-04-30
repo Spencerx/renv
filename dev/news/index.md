@@ -2,6 +2,169 @@
 
 ## renv (development version)
 
+- Fixed a regression where
+  [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md)
+  and
+  [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  would re-download packages that were already installed in the user or
+  site library, instead of reusing the existing installation.
+  ([\#2288](https://github.com/rstudio/renv/issues/2288))
+
+- Fixed an issue where
+  [`renv::snapshot()`](https://rstudio.github.io/renv/dev/reference/snapshot.md)
+  would fail to install missing packages when `pak` was enabled and the
+  user selected the “Install the packages, then snapshot” option at the
+  prompt.
+  [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  now forwards its `include` and `exclude` arguments to the pak backend,
+  so `install(include = missing)` reliably installs the requested
+  packages rather than falling through to a no-op project update.
+  ([\#2281](https://github.com/rstudio/renv/issues/2281))
+
+- Fixed an issue where
+  [`renv::init()`](https://rstudio.github.io/renv/dev/reference/init.md)
+  did not use pak to install missing dependencies, even when
+  `pak.enabled = TRUE`. The install path used during init now delegates
+  to pak when it is enabled.
+  ([\#2282](https://github.com/rstudio/renv/issues/2282))
+
+- Fixed an issue where `renv::restore(clean = TRUE)` did not remove
+  unused packages when `RENV_CONFIG_PAK_ENABLED=TRUE` (or
+  `config$pak.enabled()` was otherwise set). The pak code path now
+  honors `clean = TRUE` and drops packages from the project library that
+  are not recorded in the lockfile, before delegating installs to pak.
+  ([\#2280](https://github.com/rstudio/renv/issues/2280))
+
+- New `install.keep.source` configuration option controls whether renv
+  invokes `R CMD INSTALL` with `--with-keep.source`. Defaults to `TRUE`,
+  matching existing behaviour; set to `FALSE` to install with
+  `--without-keep.source`, which can significantly reduce the serialized
+  size of functions defined by installed packages.
+  ([\#1713](https://github.com/rstudio/renv/issues/1713))
+
+- Fixed an issue where
+  [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  could misreport packages as “built from source” when they were
+  actually pre-built binaries served from a Posit Package Manager
+  “binary” repository. The graph installer now classifies packages by
+  inspecting the downloaded archive, rather than trusting the `type`
+  passed to
+  [`available.packages()`](https://rdrr.io/r/utils/available.packages.html).
+
+- Fixed an issue where
+  [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md)
+  and
+  [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  could resolve dependency constraints against the wrong version’s
+  `DESCRIPTION`. When a lockfile-pinned version was not available from
+  the configured repositories (e.g. only the latest version is indexed,
+  as on `packagemanager.posit.co/cran/latest`), the graph resolver
+  substituted the latest version’s `Depends`/`Imports`/`LinkingTo`
+  fields in place of the pinned version’s, which could force spurious
+  upgrades of unrelated dependencies. The resolver now consults crandb
+  for the pinned version’s actual requirements before falling back to
+  the latest entry.
+  ([\#2278](https://github.com/rstudio/renv/issues/2278))
+
+- Fixed an issue where setting `options(pkgType = "both")` on Linux
+  could cause
+  [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md)
+  to extract a source tarball into the library as if it were a pre-built
+  binary, skipping `R CMD INSTALL` and producing “has no ‘package.rds’
+  in Meta/” load-test failures.
+  ([\#2275](https://github.com/rstudio/renv/issues/2275))
+
+## renv 1.2.2
+
+CRAN release: 2026-04-16
+
+- Fixed an issue where
+  [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  failed with named remotes in `DESCRIPTION`
+  (e.g. `skeleton=kevinushey/skeleton`). The lazy remote resolution was
+  not fully unwrapped, causing “object of type ‘closure’ is not
+  subsettable” errors during dependency graph resolution.
+  ([\#2272](https://github.com/rstudio/renv/issues/2272))
+
+- Fixed an issue where binary packages could be installed before their
+  dependencies during
+  [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md),
+  causing load-test failures. Binary and source packages now participate
+  in the same dependency-ordered installation.
+  ([\#2268](https://github.com/rstudio/renv/issues/2268))
+
+## renv 1.2.1
+
+CRAN release: 2026-04-12
+
+- `RENV_PATHS_LOCKFILE` now resolves relative paths against the project
+  directory rather than the working directory. Previously, the effective
+  lockfile path could change as the working directory changed within an
+  R session. ([\#2238](https://github.com/rstudio/renv/issues/2238))
+
+- [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  no longer upgrades transitive dependencies when the installed version
+  already satisfies all dependency requirements. Previously, transitive
+  dependencies were always upgraded to the latest available version,
+  even when the existing library version was compatible.
+  ([\#2232](https://github.com/rstudio/renv/issues/2232))
+
+- Fixed an issue where
+  [`renv::update()`](https://rstudio.github.io/renv/dev/reference/update.md)
+  and
+  [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  did not handle `RemoteSubdir` correctly for Bitbucket and GitLab
+  packages. The subdirectory was not passed through during remote
+  resolution, causing DESCRIPTION lookups to fail for packages that live
+  in a repository subdirectory.
+  ([\#2229](https://github.com/rstudio/renv/issues/2229))
+
+- Fixed an issue where repository URLs from the lockfile could have
+  `/src/contrib` appended twice, producing download URLs like
+  `.../src/contrib/src/contrib/PACKAGES`.
+
+- Fixed an issue where `renv::install(..., type = "binary")` was not
+  respected during dependency graph resolution, causing renv to resolve
+  source-only versions even when binaries were requested.
+  ([\#2264](https://github.com/rstudio/renv/issues/2264),
+  [\#2266](https://github.com/rstudio/renv/issues/2266))
+
+- Fixed an infinite recursion in the JSON writer when encountering
+  `numeric_version` objects.
+
+- Packages installed from local sources can now fall back to repository
+  sources when the local source is no longer available.
+
+- [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  and
+  [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md)
+  now display progress when installing binary packages.
+
+- `renv::use(repos = NULL)` now correctly resolves and installs
+  transitive dependencies from the cache. Previously, only explicitly
+  requested packages were installed.
+  ([\#2254](https://github.com/rstudio/renv/issues/2254))
+
+- The slow-dependency-discovery message during
+  [`renv::snapshot()`](https://rstudio.github.io/renv/dev/reference/snapshot.md)
+  now accounts for whether an `.renvignore` file already exists, and
+  adjusts the suggested action accordingly.
+  ([\#2193](https://github.com/rstudio/renv/issues/2193),
+  [\#2261](https://github.com/rstudio/renv/issues/2261))
+
+- Fixed an error during
+  [`restore()`](https://rstudio.github.io/renv/dev/reference/restore.md)
+  when a package from a custom repository could not be found in
+  available packages, and the lockfile used the v2 format.
+  ([\#2263](https://github.com/rstudio/renv/issues/2263))
+
+- The new `lockfile.sanitize` project setting controls whether renv
+  strips embedded credentials from repository URLs when writing the
+  lockfile. Set to `FALSE` to preserve credentials in the lockfile. See
+  [`?renv::settings`](https://rstudio.github.io/renv/dev/reference/settings.md)
+  for more details.
+  ([\#2262](https://github.com/rstudio/renv/issues/2262))
+
 - Fixed an error when calling
   [`renv::use()`](https://rstudio.github.io/renv/dev/reference/embed.md)
   multiple times in a single session.
