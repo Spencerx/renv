@@ -2,6 +2,76 @@
 
 ## renv (development version)
 
+- [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md)
+  gains a `retry` argument, controlling whether packages that fail to
+  install successfully are retried with their latest available versions.
+  This recovery was previously only offered via an interactive prompt;
+  `retry = TRUE` now enables it without prompting (useful in
+  non-interactive sessions such as CI), while `retry = FALSE` disables
+  it entirely. ([\#1893](https://github.com/rstudio/renv/issues/1893))
+
+- renv no longer treats the mere presence of a `biocViews` field in a
+  package’s `DESCRIPTION` as proof that the package came from
+  Bioconductor. Some CRAN packages declare `biocViews`, and Posit
+  Package Manager can serve Bioconductor packages from a CRAN-like “R
+  repository”; in both cases renv now uses the `Repository` field (and
+  Bioconductor git provenance) to decide where a package was obtained,
+  so such packages are recorded as repository packages and restored from
+  the repository they came from.
+  ([\#2128](https://github.com/rstudio/renv/issues/2128))
+
+- A new project setting, `settings$bioconductor.enabled()`, can be set
+  to `FALSE` to opt a project out of Bioconductor entirely. When
+  disabled, renv will not infer a Bioconductor source, activate
+  Bioconductor repositories, or write a Bioconductor entry into the
+  lockfile. ([\#2128](https://github.com/rstudio/renv/issues/2128))
+
+- renv’s internal DCF and properties readers now match their (ASCII)
+  regular expressions with `useBytes = TRUE`. This avoids forcing PCRE
+  into UTF mode, which could fail with “this version of PCRE is compiled
+  without UTF support” – in some environments preventing renv from even
+  loading – when R is linked against a PCRE library lacking UTF support
+  or left in a state where it believes UTF is unsupported.
+
+- `renv::install(<package>, type = "source")` once again installs from
+  source when a binary Posit Package Manager (PPM) repository is
+  configured. Previously, the dependency graph was resolved against the
+  un-transformed (binary) repository URL, so a binary package could be
+  installed even though source was requested.
+  ([\#2303](https://github.com/rstudio/renv/issues/2303))
+
+- The presence of an `rsconnect/` folder in a project is now treated as
+  a development dependency on the `rsconnect` package, rather than a
+  runtime dependency. This means `rsconnect` will no longer be
+  automatically recorded by
+  [`renv::snapshot()`](https://rstudio.github.io/renv/dev/reference/snapshot.md)
+  unless the project actually uses it at run time (or
+  `settings$snapshot.dev(TRUE)` is set).
+  ([\#2290](https://github.com/rstudio/renv/issues/2290))
+
+- [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  no longer treats a package as already installed when its namespace is
+  loaded from a path that is no longer on
+  [`.libPaths()`](https://rdrr.io/r/base/libPaths.html) (e.g. when a
+  global `~/.Rprofile` loads the package before renv activates).
+  Previously,
+  [`install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  would silently skip these packages and
+  [`snapshot()`](https://rstudio.github.io/renv/dev/reference/snapshot.md)
+  could not record them, leaving the project stuck.
+  ([\#2300](https://github.com/rstudio/renv/issues/2300))
+
+- On project load, renv now warns when one or more package namespaces
+  have already been loaded from a path outside the active library paths.
+  Such packages are not managed by renv and can cause
+  [`renv::status()`](https://rstudio.github.io/renv/dev/reference/status.md)
+  and
+  [`renv::snapshot()`](https://rstudio.github.io/renv/dev/reference/snapshot.md)
+  to report inconsistencies. The check can be disabled via the
+  `namespaces.check` config option (or the
+  `RENV_CONFIG_NAMESPACES_CHECK` environment variable).
+  ([\#2300](https://github.com/rstudio/renv/issues/2300))
+
 ## renv 1.2.3
 
 CRAN release: 2026-05-16
