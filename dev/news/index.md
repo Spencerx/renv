@@ -2,6 +2,53 @@
 
 ## renv (development version)
 
+- When
+  [`renv::snapshot()`](https://rstudio.github.io/renv/dev/reference/snapshot.md)
+  aborts due to a pre-flight validation failure, the error now includes
+  a summary of the problems that were detected (for example, the missing
+  packages or unsatisfied dependencies). Previously these details were
+  only printed to the console, so they could be lost when that output
+  was not visible (such as when stdout is captured).
+
+- The new
+  [`lockfile()`](https://rstudio.github.io/renv/dev/reference/lockfile.md)
+  function provides a generic entry point for creating an renv lockfile
+  from a variety of sources. For example,
+  `lockfile(from = "manifest.json")` converts a Posit Connect
+  `manifest.json` file into a lockfile. Supply `to` to also write the
+  result to disk, as in
+  `lockfile(from = "manifest.json", to = "renv.lock")`. The set of
+  supported sources may be expanded in future releases.
+  ([\#2245](https://github.com/rstudio/renv/issues/2245))
+
+- When the graph resolver cannot determine the dependencies for a pinned
+  package version (because the version is absent from the configured
+  repositories and crandb is unreachable or has no record of it), it
+  falls back to the latest version’s dependencies. renv now warns when
+  this happens, since those dependencies may differ from the pinned
+  version’s and could lead to an incorrect install order.
+  ([\#2315](https://github.com/rstudio/renv/issues/2315))
+
+- Fixed a regression introduced in renv 1.2.0 where installing a package
+  from the cellar (via
+  [`install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  or [`use()`](https://rstudio.github.io/renv/dev/reference/embed.md))
+  failed to install that package’s dependencies. The graph-based
+  installer resolved cellar packages from metadata that omitted their
+  `Depends` / `Imports` / `LinkingTo` fields; renv now reads the
+  package’s `DESCRIPTION` from the cellar archive so that its
+  dependencies are discovered and installed.
+  ([\#2313](https://github.com/rstudio/renv/issues/2313))
+
+- renv now infers some “implied” dependencies that cannot be discovered
+  via static analysis because they are loaded indirectly at runtime by
+  another package. For example, dplyr lazily loads dbplyr when working
+  with a database backend, so dbplyr is now recorded when a project uses
+  both dplyr and a DBI backend (e.g. RSQLite, RPostgres, duckdb). The
+  rules are configurable via the `renv.dependencies.implied` R option;
+  set it to an empty list to disable this inference entirely.
+  ([\#2308](https://github.com/rstudio/renv/issues/2308))
+
 - [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md)
   gains a `retry` argument, controlling whether packages that fail to
   install successfully are retried with their latest available versions.
@@ -14,10 +61,14 @@
   package’s `DESCRIPTION` as proof that the package came from
   Bioconductor. Some CRAN packages declare `biocViews`, and Posit
   Package Manager can serve Bioconductor packages from a CRAN-like “R
-  repository”; in both cases renv now uses the `Repository` field (and
-  Bioconductor git provenance) to decide where a package was obtained,
-  so such packages are recorded as repository packages and restored from
-  the repository they came from.
+  repository”; in both cases renv now uses the `Repository` field to
+  decide where a package was obtained, so such packages are recorded as
+  repository packages and restored from the repository they came from.
+  Genuine Bioconductor packages are still recognized by their
+  `Repository` stamp, including binaries served via r-universe (stamped
+  with a `https://bioc-*.r-universe.dev` URL); and when a package has no
+  `Repository` stamp at all (as for bioconductor.org binaries, or very
+  old or source-installed packages), renv trusts the `biocViews` field.
   ([\#2128](https://github.com/rstudio/renv/issues/2128))
 
 - A new project setting, `settings$bioconductor.enabled()`, can be set

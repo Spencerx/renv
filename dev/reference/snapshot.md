@@ -1,7 +1,7 @@
 # Record current state of the project library in the lockfile
 
 Call `renv::snapshot()` to update a
-[lockfile](https://rstudio.github.io/renv/dev/reference/lockfile-api.md)
+[lockfile](https://rstudio.github.io/renv/dev/reference/lockfile.md)
 with the current state of dependencies in the project library. The
 lockfile can be used to later
 [restore](https://rstudio.github.io/renv/dev/reference/restore.md) these
@@ -35,7 +35,8 @@ snapshot(
   prompt = interactive(),
   update = FALSE,
   force = FALSE,
-  reprex = FALSE
+  reprex = FALSE,
+  description = NULL
 )
 ```
 
@@ -133,10 +134,20 @@ snapshot(
   Boolean; generate output appropriate for embedding the lockfile as
   part of a [reprex](https://tidyverse.org/help/#reprex)?
 
+- description:
+
+  A package DESCRIPTION, provided either as a named list of DESCRIPTION
+  fields, or a path to a package directory or DESCRIPTION file. When
+  set, all other arguments are ignored, and a single lockfile record for
+  that package is returned.
+
 ## Value
 
 The generated lockfile, as an R object (invisibly). Note that this
 function is normally called for its side effects.
+
+When `description` is provided, a single lockfile record (a named list)
+is returned instead.
 
 ## Snapshot types
 
