@@ -2,6 +2,30 @@
 
 ## renv (development version)
 
+- [`renv::dependencies()`](https://rstudio.github.io/renv/dev/reference/dependencies.md)
+  now detects packages referenced via
+  [`rlang::check_installed()`](https://rlang.r-lib.org/reference/is_installed.html)
+  and
+  [`rlang::is_installed()`](https://rlang.r-lib.org/reference/is_installed.html).
+  ([\#1936](https://github.com/rstudio/renv/issues/1936))
+
+- [`renv::dependencies()`](https://rstudio.github.io/renv/dev/reference/dependencies.md)
+  now infers the optional packages required by certain testthat
+  functions; for example, `skip_if_offline()` implies a dependency on
+  curl, and `snapshot_review()` implies dependencies on shiny and
+  diffviewer. In addition, usage of the Junit reporter is now also
+  detected in calls to `test_check()` and `test_local()`.
+  ([\#1936](https://github.com/rstudio/renv/issues/1936))
+
+- [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  with pak enabled no longer upgrades already-installed dependencies
+  that are only pulled in transitively – most visibly recommended
+  packages such as `cluster` or `Matrix`, which previously could be
+  rebuilt when installing an unrelated package. renv now passes
+  `upgrade = FALSE` to pak, matching renv’s own installer, while still
+  forcing a (re)install of the packages you explicitly request.
+  ([\#2329](https://github.com/rstudio/renv/issues/2329))
+
 - Internal DESCRIPTION reads that request a package by name now error
   when that package is not installed, rather than silently falling back
   to the DESCRIPTION in the current working directory.
