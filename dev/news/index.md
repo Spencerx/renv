@@ -2,6 +2,166 @@
 
 ## renv (development version)
 
+- Fixed an issue where renv computed the wrong Posit Package Manager
+  binary URL on some Enterprise Linux distributions. CentOS Stream 9 and
+  10 were mapped to the non-existent `centos9` and `centos1` platforms
+  rather than `rhel9` and `rhel10`, and Rocky Linux 10 and AlmaLinux 10
+  were mapped to `rhel1` rather than `rhel10`, causing package downloads
+  to fail with 404 errors.
+  ([\#2354](https://github.com/rstudio/renv/issues/2354))
+
+- Fixed an issue where renv would busy-wait, consuming an entire CPU
+  core, while waiting to acquire a lock. The retry loop’s backoff had
+  become unreachable, so renv retried as fast as it could rather than at
+  the intended 0.2s interval. In addition, when the lock path was not
+  writable at all (for example, under an OS sandbox denying writes
+  outside the project), the loop had no terminating condition and renv
+  would hang indefinitely – silently, and uninterruptibly when reached
+  via `renv/activate.R` during startup. renv now backs off between
+  attempts, and reports an error (including the reason reported by the
+  operating system) when the lock path cannot be written.
+  ([\#2358](https://github.com/rstudio/renv/issues/2358))
+
+- Fixed an issue where, with the `renv.install.allowArchivedPackages`
+  option enabled, a package available only from a repository’s archive
+  would resolve to nothing at all. The archive was queried, but the
+  result was then discarded: the lookup only ever returned the
+  repository or crandb candidate. Archived candidates are now used when
+  neither of those can supply the package. Records resolved this way
+  also carry the URL of the repository’s archive, so they can be
+  downloaded in the same parallel batch as everything else, and they
+  retain their repository even when `getOption("repos")` is unnamed.
+  Their archived `DESCRIPTION` is read before dependency resolution, so
+  strong dependencies are not omitted, and binary-only requests continue
+  to reject these source-only candidates.
+  ([\#2356](https://github.com/rstudio/renv/issues/2356))
+
+- The available-package lookup now stops at the first source that can
+  supply the package, rather than querying every source and discarding
+  the extra answers. Repositories still take precedence over P3M,
+  crandb, and the archive, so renv no longer makes fallback requests
+  whose results it cannot use.
+
+- On Windows and macOS, the available-package lookup once again consults
+  the P3M historical-binary database when configured repositories have
+  no candidate. P3M binaries are preferred over crandb version hints and
+  enabled repository archives, while source-only requests do not consult
+  P3M. Missing records for newer R or platform versions are treated as
+  an ordinary miss while the database catches up.
+
+- Fixed an issue where
+  [`renv::sysreqs()`](https://rstudio.github.io/renv/dev/reference/sysreqs.md)
+  (and the system requirement checks performed during install and
+  restore) would only report the first system package required by an R
+  package. When a package’s `SystemRequirements` field declared multiple
+  system libraries – for example, `ragg` declares freetype2, libpng,
+  libtiff, libjpeg, and libwebp – only the first matching system
+  dependency was reported. All matching dependencies are now reported.
+  ([\#2352](https://github.com/rstudio/renv/issues/2352))
+
+- Fixed an issue where, if one or more repositories could not be queried
+  for available packages, the partial result would be cached and served
+  for up to an hour – renv would behave as though the failed
+  repositories held no packages at all, without reporting why. Partial
+  results are no longer cached, so failed repositories are re-queried
+  (and failures re-reported) on subsequent calls. Similarly, failed
+  archive queries (used when the `renv.install.allowArchivedPackages`
+  option is enabled) are no longer cached, as the failure may be
+  transient; such queries are still only attempted once per operation.
+  ([\#2350](https://github.com/rstudio/renv/issues/2350))
+
+- When the `renv.config.crandb.enabled` option is set, renv now prefers
+  the record from the active repositories whenever those repositories
+  can supply the package, rather than taking whichever of the two
+  reports the newer version. crandb is not restricted to the active
+  repositories, so it could name a version they don’t carry – for
+  example, when they’re pinned to a dated snapshot such as
+  `https://p3m.dev/cran/2025-03-28`. renv now consults crandb only when
+  the active repositories have no candidate at all, which is the case it
+  was added to handle: finding a version compatible with an older
+  version of R. ([\#2345](https://github.com/rstudio/renv/issues/2345))
+
+- Fixed an issue where renv would warn that a package “was loaded before
+  renv activated this project” when no such thing had happened. Projects
+  using Bioconductor were affected on every startup, as renv loads
+  `BiocManager` itself when resolving Bioconductor repositories. The
+  check also mistook packages linked into the project library from the
+  renv cache for packages loaded from outside the library paths.
+  ([\#2344](https://github.com/rstudio/renv/issues/2344))
+
+- [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  and
+  [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md)
+  no longer build a package from source when a binary of the requested
+  version is available, in cases where the active repositories are
+  pinned to a dated snapshot (for example, a Posit Package Manager URL
+  like `https://p3m.dev/cran/2025-03-28`) and the
+  `renv.config.crandb.enabled` option is set. renv consulted crandb to
+  find the newest version of the package, but because crandb is not
+  restricted to the configured repositories, it could report a version
+  those repositories don’t provide – and renv then fell back to
+  installing from source.
+  ([\#2345](https://github.com/rstudio/renv/issues/2345))
+
+## renv 1.2.4
+
+CRAN release: 2026-08-03
+
+- [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  and
+  [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md)
+  with pak enabled can now handle packages hosted on a self-hosted
+  GitLab instance. renv previously handed pak remotes of the form
+  `gitlab@<host>::<group>/<project>`, which pak was unable to parse;
+  renv now translates these into pkgdepends’ own syntax,
+  `gitlab::https://<host>/<group>/<project>`. GitLab sub-directories are
+  likewise translated to pkgdepends’ `/-/<subdir>` syntax.
+  ([\#2180](https://github.com/rstudio/renv/issues/2180))
+
+- When a package fails to download, renv now reports the reason for the
+  failure, rather than a generic “failed to download” message. For
+  example, when the download destination within the renv root is not
+  writable (as can happen with a misconfigured shared cache), the error
+  now says so directly.
+  ([\#2340](https://github.com/rstudio/renv/issues/2340))
+
+- Failed package downloads are now reported quietly when a later
+  retrieval candidate succeeds – for example, when a binary package
+  fails to download, but the source fallback succeeds. If all candidates
+  fail, the download output is still emitted, and download errors are no
+  longer reported twice.
+  ([\#1727](https://github.com/rstudio/renv/issues/1727))
+
+- [`renv::use()`](https://rstudio.github.io/renv/dev/reference/embed.md)
+  with pak enabled now honours the requested remotes, rather than
+  installing the latest version of each package from the active
+  repositories. Previously, a call like `renv::use("generics@0.1.3")`
+  would install the current CRAN version of generics.
+  [`renv::rebuild()`](https://rstudio.github.io/renv/dev/reference/rebuild.md)
+  and
+  [`renv::repair()`](https://rstudio.github.io/renv/dev/reference/repair.md)
+  were affected in the same way.
+  ([\#2341](https://github.com/rstudio/renv/issues/2341))
+
+- [`renv::remove()`](https://rstudio.github.io/renv/dev/reference/remove.md)
+  gains a `prompt` argument, and now asks for confirmation before
+  removing packages from a library other than the project library – for
+  example, when called without an activated renv project, where the
+  target library would be the user library.
+  ([\#2331](https://github.com/rstudio/renv/issues/2331))
+
+- Removing a package record from the lockfile by setting it to `NULL`,
+  e.g. with `renv::record(list(dplyr = NULL))`, is now documented.
+  ([\#2331](https://github.com/rstudio/renv/issues/2331))
+
+- Package projects can now request that the package itself be included
+  in the lockfile, by setting `Config/renv/snapshot/include-self: TRUE`
+  in the package `DESCRIPTION` file. This can be useful when deploying a
+  Shiny application that is developed as part of a package. See
+  [`?renv::snapshot`](https://rstudio.github.io/renv/dev/reference/snapshot.md)
+  for more details.
+  ([\#2285](https://github.com/rstudio/renv/issues/2285))
+
 - [`renv::dependencies()`](https://rstudio.github.io/renv/dev/reference/dependencies.md)
   now detects packages referenced via
   [`rlang::check_installed()`](https://rlang.r-lib.org/reference/is_installed.html)
@@ -16,6 +176,13 @@
   diffviewer. In addition, usage of the Junit reporter is now also
   detected in calls to `test_check()` and `test_local()`.
   ([\#1936](https://github.com/rstudio/renv/issues/1936))
+
+- [`renv::dependencies()`](https://rstudio.github.io/renv/dev/reference/dependencies.md)
+  now detects a dependency on the ragg package when the `ragg_png`
+  graphics device is requested via knitr chunk options set in a
+  document’s YAML header. Previously, only calls of the form
+  `knitr::opts_chunk$set(dev = "ragg_png")` in code chunks were
+  detected. ([\#2311](https://github.com/rstudio/renv/issues/2311))
 
 - [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
   with pak enabled no longer upgrades already-installed dependencies
@@ -77,6 +244,15 @@
   `lockfile(from = "manifest.json", to = "renv.lock")`. The set of
   supported sources may be expanded in future releases.
   ([\#2245](https://github.com/rstudio/renv/issues/2245))
+
+- [`renv::snapshot()`](https://rstudio.github.io/renv/dev/reference/snapshot.md)
+  gains a `description` parameter, which converts a package
+  `DESCRIPTION` (provided either as a named list of fields, or as a path
+  to a package directory or `DESCRIPTION` file) into a single lockfile
+  record, without requiring the package to be installed. This allows
+  tools like rsconnect to perform manifest-to-lockfile conversion using
+  exported renv APIs.
+  ([\#2250](https://github.com/rstudio/renv/issues/2250))
 
 - When resolving the dependencies of a pinned package version that is
   absent from the configured repositories’ `PACKAGES` metadata and
