@@ -2,6 +2,39 @@
 
 ## renv (development version)
 
+- Staged package installations now use the project library root by
+  default. This allows projects on network drives to retain cache
+  junctions on Windows when their libraries and cache are stored
+  locally. Installs into a different library stage within that library,
+  and `RENV_PATHS_LIBRARY_STAGING` continues to override the staging
+  location. ([\#2368](https://github.com/rstudio/renv/issues/2368))
+
+- The large-file-count warning during
+  [`renv::dependencies()`](https://rstudio.github.io/renv/dev/reference/dependencies.md)
+  now accounts for whether an `.renvignore` file already exists, and
+  suggests modifying it instead of creating one.
+  ([\#2193](https://github.com/rstudio/renv/issues/2193),
+  [@jkylearmstrong](https://github.com/jkylearmstrong))
+
+- When bootstrapping renv from GitHub, errors while extracting the
+  commit SHA from the downloaded archive are now reported without
+  aborting the bootstrap process. Installation is attempted without
+  adding GitHub metadata.
+  ([\#2366](https://github.com/rstudio/renv/issues/2366),
+  [@jkylearmstrong](https://github.com/jkylearmstrong))
+
+- [`renv::update()`](https://rstudio.github.io/renv/dev/reference/update.md)
+  no longer tries to fork the R session when checking packages installed
+  from non-CRAN remotes within Positron, whose R kernel forbids forking.
+  Such checks now run sequentially there, as they already do on Windows.
+  ([\#2364](https://github.com/rstudio/renv/issues/2364))
+
+- [`renv::dependencies()`](https://rstudio.github.io/renv/dev/reference/dependencies.md)
+  no longer emits encoding warnings when checking R script headers
+  containing non-ASCII text in a different encoding from the current
+  locale. This also avoids failures when warnings are treated as errors.
+  ([\#2362](https://github.com/rstudio/renv/issues/2362))
+
 - Fixed an issue where renv computed the wrong Posit Package Manager
   binary URL on some Enterprise Linux distributions. CentOS Stream 9 and
   10 were mapped to the non-existent `centos9` and `centos1` platforms
