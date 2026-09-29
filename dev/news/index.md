@@ -2,6 +2,39 @@
 
 ## renv (development version)
 
+- [`renv::dependencies()`](https://rstudio.github.io/renv/dev/reference/dependencies.md)
+  now follows Quarto’s engine-binding rules when inferring dependencies
+  for `.qmd` documents. Documents bound to the knitr engine, whether via
+  R chunks, an explicit `engine: knitr` declaration, or `knitr:` options
+  in the YAML header, infer a dependency on `rmarkdown`, and
+  additionally on `reticulate` when they contain Python chunks.
+  Documents bound to another engine (for example, `engine: jupyter`) no
+  longer infer a dependency on `rmarkdown`.
+  ([\#2174](https://github.com/rstudio/renv/issues/2174))
+
+- [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md)
+  now resolves the dependencies of a package installed from r-universe
+  using the git commit recorded in the lockfile (via the `RemoteUrl` and
+  `RemoteSha` fields) when the recorded version is no longer available
+  from the repository. Previously, the dependencies of the latest
+  version were used instead, which could cause packages to be installed
+  in the wrong order or force other locked packages to be upgraded.
+  ([\#2370](https://github.com/rstudio/renv/issues/2370))
+
+- renv now falls back to its R implementations, with a warning, if its
+  compiled extensions exist but cannot be loaded. For example, when a
+  binary package accidentally ships a shared library built for a
+  different architecture. (eddelbuettel/r2u#162)
+
+- [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md)
+  can now restore Bioconductor packages whose recorded version is no
+  longer available from the Bioconductor repositories. This is most
+  often seen with the devel branch of Bioconductor, which does not
+  archive superseded package versions. In such cases, renv now retrieves
+  the package sources from the git commit recorded in the lockfile (via
+  the `git_url` and `git_last_commit` fields), and installs the package
+  from those. ([\#2370](https://github.com/rstudio/renv/issues/2370))
+
 - Staged package installations now use the project library root by
   default. This allows projects on network drives to retain cache
   junctions on Windows when their libraries and cache are stored
