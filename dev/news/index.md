@@ -2,6 +2,143 @@
 
 ## renv (development version)
 
+## renv 1.3.0
+
+CRAN release: 2026-09-29
+
+- renv now quotes the URL, ref, and commit of a git record when passing
+  them to `git`, and rejects records whose values `git` could read as an
+  option (for example, a ref of `--upload-pack=<command>`) or as a
+  request to run a transport helper. Previously, a crafted lockfile
+  record or `git::` remote could have these values run as shell
+  commands. ([\#2389](https://github.com/rstudio/renv/issues/2389))
+
+- Fixed an error when detecting the Posit Package Manager platform on an
+  Enterprise Linux distribution whose `/etc/os-release` declares an
+  empty `VERSION_ID`; renv now falls back to the untransformed
+  repository URL.
+  ([\#2386](https://github.com/rstudio/renv/issues/2386))
+
+- A trailing YAML comment on the `engine:` field of a Quarto document’s
+  header (for example, `engine: knitr # comment`) no longer prevents
+  renv from inferring that the document is bound to knitr.
+  ([\#2386](https://github.com/rstudio/renv/issues/2386))
+
+- `renv::restore(retry = TRUE)` (and the interactive retry prompt) now
+  keeps the packages which installed successfully in the first pass when
+  the restore is transactional. Previously, the transactional rollback
+  of the first pass discarded those packages, but the retry only
+  re-installed the packages which had failed, leaving the library
+  incomplete. A transactional rollback is now also reported as such,
+  rather than as a successful installation, and
+  [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  no longer lists rolled-back packages among the packages which failed
+  to install. ([\#2380](https://github.com/rstudio/renv/issues/2380))
+
+- [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md)
+  once again ignores lockfile records for packages built for a different
+  operating system (for example, a Windows-only package in a lockfile
+  restored on Linux), rather than reporting them as failed installs.
+  With a transactional restore, such a failure previously rolled back
+  the entire restore.
+  ([\#2380](https://github.com/rstudio/renv/issues/2380))
+
+- [`renv::hydrate()`](https://rstudio.github.io/renv/dev/reference/hydrate.md)
+  (and so
+  [`renv::init()`](https://rstudio.github.io/renv/dev/reference/init.md))
+  now installs packages non-transactionally, so a package that cannot be
+  installed no longer causes the other packages being hydrated to be
+  rolled back. ([\#2380](https://github.com/rstudio/renv/issues/2380))
+
+- On Windows,
+  [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  and
+  [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md)
+  no longer let profiles named by `R_PROFILE` or `R_PROFILE_USER` be
+  sourced by the `R CMD INSTALL` processes they launch. Before R 4.3.0,
+  `R CMD` did not honor `--vanilla` for those processes, so a profile
+  which reset [`.libPaths()`](https://rdrr.io/r/base/libPaths.html) (as
+  callr’s does, e.g. when renv is run under rcmdcheck) could hide
+  already-installed dependencies from the installer, causing installs to
+  fail with “dependency is not available”.
+  ([\#2380](https://github.com/rstudio/renv/issues/2380))
+
+- On Windows, the output reported for a failed package installation now
+  includes what `R CMD INSTALL` wrote to stderr, which is where it
+  reports the reason for the failure (for example, “dependency ‘x’ is
+  not available”). Previously, only stdout was captured, so such
+  failures were reported with no output at all.
+  ([\#2385](https://github.com/rstudio/renv/issues/2385))
+
+- `HEAD` requests made with the `wget` download method now work. The
+  request omitted the URL, and relied on shell redirection to capture
+  the response headers, which was ignored on Windows; the headers wget
+  reports are also now parsed correctly.
+  ([\#2385](https://github.com/rstudio/renv/issues/2385))
+
+- [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  now records the commit (`RemoteSha`) that a package was installed from
+  when using the `git::` remote pathway, so that
+  [`renv::snapshot()`](https://rstudio.github.io/renv/dev/reference/snapshot.md)
+  pins that package to the installed commit, and
+  [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md)
+  retrieves that same commit rather than whatever the recorded ref
+  points at when the project is restored (including when pak is
+  enabled). Restoring a git package from a lockfile written by an older
+  version of renv, which has no `RemoteSha`, likewise records the commit
+  that was installed, so the next
+  [`renv::snapshot()`](https://rstudio.github.io/renv/dev/reference/snapshot.md)
+  pins it; until then, the installed package is treated as satisfying
+  the lockfile’s record, rather than being reported as a change. If a
+  git server refuses to serve a pinned commit directly, renv now fetches
+  the recent history of the recorded ref instead (deepening it as
+  needed), and checks out the commit from there. In addition,
+  [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md),
+  [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md),
+  [`renv::hydrate()`](https://rstudio.github.io/renv/dev/reference/hydrate.md),
+  [`renv::update()`](https://rstudio.github.io/renv/dev/reference/update.md),
+  and
+  [`renv::record()`](https://rstudio.github.io/renv/dev/reference/record.md)
+  now clone a given commit at most once, rather than up to three times,
+  and remove those clones once they complete.
+  ([\#2378](https://github.com/rstudio/renv/issues/2378))
+
+- With pak enabled, installing a package from a sub-directory of a git
+  repository now reports that pak does not support this, rather than
+  asking pak to install from the repository’s root.
+  ([\#2378](https://github.com/rstudio/renv/issues/2378))
+
+- [`renv::update()`](https://rstudio.github.io/renv/dev/reference/update.md)
+  now checks for updates to packages that renv installed from `git::`
+  remotes; previously, these packages were skipped. For git packages, it
+  also now resolves a ref to the commit that git itself would fetch,
+  rather than to any ref whose name ends with it (e.g. `feature/main`
+  for `main`), and reports refs that no longer exist as errors. Packages
+  installed from an annotated tag by remotes are no longer reported as
+  out of date, and git packages with no recorded commit are only
+  reported as out of date if a newer version is available.
+  ([\#2378](https://github.com/rstudio/renv/issues/2378))
+
+- Version constraints declared in the project’s `DESCRIPTION` file (for
+  example, `Imports: dplyr (>= 1.1.0)`) are now honored by
+  [`renv::install()`](https://rstudio.github.io/renv/dev/reference/install.md)
+  and validated by
+  [`renv::snapshot()`](https://rstudio.github.io/renv/dev/reference/snapshot.md).
+  Previously, these constraints were only used when they pinned an exact
+  version with `==`; other constraints were silently ignored, so an
+  installed dependency could be older than the version the project
+  declared it required. Versions pinned by the lockfile during
+  [`renv::restore()`](https://rstudio.github.io/renv/dev/reference/restore.md),
+  or requested explicitly via `pkg@version`, or declared in the
+  project’s `Remotes` field, are never overridden by these constraints;
+  renv reports the unmet constraint instead. When renv retrieves
+  packages one at a time (for example, in
+  [`renv::upgrade()`](https://rstudio.github.io/renv/dev/reference/upgrade.md)),
+  it also now reports whenever it replaces a package version that didn’t
+  satisfy the constraints of other packages, rather than only when that
+  package was explicitly requested. `!=` constraints are now parsed as
+  well. ([\#2377](https://github.com/rstudio/renv/issues/2377))
+
 - [`renv::dependencies()`](https://rstudio.github.io/renv/dev/reference/dependencies.md)
   now follows Quarto’s engine-binding rules when inferring dependencies
   for `.qmd` documents. Documents bound to the knitr engine, whether via
@@ -107,6 +244,7 @@
   the extra answers. Repositories still take precedence over P3M,
   crandb, and the archive, so renv no longer makes fallback requests
   whose results it cannot use.
+  ([\#2357](https://github.com/rstudio/renv/issues/2357))
 
 - On Windows and macOS, the available-package lookup once again consults
   the P3M historical-binary database when configured repositories have
@@ -114,6 +252,7 @@
   enabled repository archives, while source-only requests do not consult
   P3M. Missing records for newer R or platform versions are treated as
   an ordinary miss while the database catches up.
+  ([\#2360](https://github.com/rstudio/renv/issues/2360))
 
 - Fixed an issue where
   [`renv::sysreqs()`](https://rstudio.github.io/renv/dev/reference/sysreqs.md)
